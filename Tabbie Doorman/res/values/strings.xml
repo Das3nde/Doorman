@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Tabbie Doorman</string>
+    <string name="login_button">Sign In</string>
+
+</resources>

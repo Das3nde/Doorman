@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/a_z_sort"
+        android:title="A-Z Sort"
+        android:icon="@drawable/az_sort" />
+    
+    <item android:id="@+id/party_sort"
+        android:title="Party Sort"
+        android:icon="@drawable/party_sort" >
+        <menu xmlns:android="http://schemas.android.com/apk/res/android"/>
+   	</item>
+    
+    <item android:id="@+id/checked_in"
+        android:title="Checked In"
+        android:icon="@drawable/checked_in">
+        <menu xmlns:android="http://schemas.android.com/apk/res/android">
+            <group android:checkableBehavior="single">
+	            <item android:id="@+id/checked_in_all"
+	                android:title="All" />
+	            <item android:id="@+id/checked_in_checked"
+	                android:title="Checked" />
+	            <item android:id="@+id/checked_in_unchecked"
+	                android:title="Unchecked" />
+	        </group>
+        </menu>
+    </item>
+    
+    <item android:id="@+id/search"
+        android:title="Search"
+        android:icon="@drawable/search_icon" />
+    <item android:id="@+id/metrics"
+        android:icon="@drawable/metrics_icon"
+        android:title="Metrics" />
+    <item android:id="@+id/log_out"
+        android:icon="@drawable/logout_icon"
+        android:title="Log Out"/>
+</menu>
