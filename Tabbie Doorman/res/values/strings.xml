@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="app_name">Tabbie Doorman</string>
     <string name="login_button">Sign In</string>
-
+    <string name="add_guest_title">Add Guest</string>
+    <string name = "add_guest_last">Last Name</string>
+    <string name = "add_guest_first">First Name</string>
+    <string name = "add_guest_promoter">Promoter</string>
+    <string name = "add_guest_nguests">Guests of Guest</string>
+    <string name = "minus_sign">-</string>
+    <string name = "plus_sign">+</string>
 </resources>

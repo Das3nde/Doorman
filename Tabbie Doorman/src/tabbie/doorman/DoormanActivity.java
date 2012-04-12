@@ -26,8 +26,8 @@ public class DoormanActivity extends FragmentActivity
 {
 	protected static final String LIST_TAG = "list";
 	protected static final String LIST_SAVE_FILE = "guest_list";
-	
-
+	protected static final String OP_ADD_GUEST = "addGuest";
+	private FragmentTransaction transaction;
 	
 	@Override
     protected void onCreate(final Bundle savedInstanceState)
@@ -36,13 +36,28 @@ public class DoormanActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
     	this.setContentView(R.layout.main);
     	
+    	if(transaction == null)
+    	{
+    		transaction = this.getSupportFragmentManager().beginTransaction();
+    	}
+    	
+    	if(savedInstanceState==null)
+    	{
+    		ArrayList<Promoter> test = new ArrayList<Promoter>();
+    		test.add(new Promoter("Justin Knutson", "JAK", 12));
+    		test.add(new Promoter("Valeri Karpov", "VAL", 23));
+    		transaction.replace(R.id.main_view, new AddGuestFragment(test));
+    		transaction.commit();
+    	}
+    	
+    	/*
     	if(savedInstanceState==null)
     	{
     		final LoginFragment userLogin = new LoginFragment();
     		final FragmentTransaction transaction = this.getSupportFragmentManager().beginTransaction();
     		transaction.replace(R.id.main_view, userLogin);
     		transaction.commit();
-    	}
+    	}*/
     	
     	/*
     	 * Try to restore the file SAVELISTFILE. If restore is

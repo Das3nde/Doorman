@@ -18,7 +18,8 @@ public class Promoter implements Parcelable, Comparable<Promoter>
 		this.id = pId;
 	}
 	
-	protected String getName()
+	@Override
+	public String toString()
 	{
 		return name;
 	}

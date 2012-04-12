@@ -40,7 +40,7 @@ public class Guest extends HashMap<String, String> implements Comparable<Guest>,
 		{
 			guestInfo.put("guests", "");
 		}
-		guestInfo.put("promoter", promoter.getName());
+		guestInfo.put("promoter", promoter.toString());
 	}
 	
 	protected void onClick()
@@ -121,7 +121,7 @@ public class Guest extends HashMap<String, String> implements Comparable<Guest>,
 		
 		this.guestInfo.put("name", (lastName + ", " + firstName));
 		this.guestInfo.put("guests", "Guests: " + numGuests);
-		this.guestInfo.put("promoter", promoter.getName());
+		this.guestInfo.put("promoter", promoter.toString());
 	}
 	
 	@Override

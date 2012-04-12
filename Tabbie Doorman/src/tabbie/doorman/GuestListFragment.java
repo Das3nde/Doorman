@@ -275,7 +275,7 @@ public class GuestListFragment extends Fragment
 		partySortMenu.add(R.id.party_sort, -1, SubMenu.NONE, "All");
 		for(Promoter p : promoters)
 		{
-			partySortMenu.add(R.id.party_sort, p.getId(), SubMenu.NONE, p.getName());
+			partySortMenu.add(R.id.party_sort, p.getId(), SubMenu.NONE, p.toString());
 		}
 		partySortMenu.setGroupCheckable(R.id.party_sort, true, true);
 		partySortMenu.findItem(promoter.getId()).setChecked(true);
