@@ -7,26 +7,36 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	android:layout_height="fill_parent"
 	android:layout_width="fill_parent">
+	
+   	<EditText
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_marginTop="30dp"
+        android:inputType="textPersonName"
+        android:hint="@string/username"
+        android:id="@+id/login_user_name" />
     	
     <EditText
     	android:layout_width="300dp"
     	android:layout_height="wrap_content"
     	android:layout_centerInParent="true"
-    	android:layout_marginTop="50dp"
+    	android:layout_below="@id/login_user_name"
     	android:inputType="textPassword"
-    	android:hint="Guest List ID"
-    	android:id="@+id/login_list_id" />
+    	android:hint="@string/password"
+    	android:id="@+id/login_password" />
     
     <ImageView
         android:src="@drawable/tabbie_title"
+        android:contentDescription="@string/app_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@id/login_list_id"
+        android:layout_above="@id/login_user_name"
         android:layout_centerHorizontal="true"
         android:id="@+id/login_tabbie_splash" />
     	
     <Button
-    	android:layout_below="@id/login_list_id"
+    	android:layout_below="@id/login_password"
     	android:layout_centerHorizontal="true"
     	android:layout_width="wrap_content"
     	android:layout_height="wrap_content"

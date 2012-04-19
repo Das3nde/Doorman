@@ -97,18 +97,7 @@ public class GuestListFragment extends Fragment
 		}
 	};
 	
-	/*
-	 * Public empty constructor used for when the
-	 * fragment is recreated from memory
-	 */
-	
 	public GuestListFragment(){}
-	
-	/*
-	 * Public parameterized constructor used
-	 * for when the fragment is called from
-	 * a user login
-	 */
 	
 	public GuestListFragment(final String mName, final ArrayList<Guest> mGuests, final ArrayList<Promoter> mPromoters)
 	{

@@ -1,13 +1,10 @@
 package tabbie.doorman;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -19,11 +16,12 @@ import android.widget.Spinner;
 
 public class AddGuestFragment extends Fragment
 {
+
+	private final ArrayList<Promoter> promoterList = new ArrayList<Promoter>();
 	private EditText editLastName, editFirstName, editNguests;
 	private Spinner promoterSpinner;
 	private Button incrementButton, decrementButton, addGuestButton;
 	private ArrayAdapter<Promoter> spinnerAdapter;
-	private final ArrayList<Promoter> promoterList;
 	private short nGuests = 0;
 	
 	private final OnClickListener nGuestsListener = new OnClickListener()
@@ -50,24 +48,25 @@ public class AddGuestFragment extends Fragment
 		@Override
 		public void onClick(View v)
 		{
-			final String firstName = editFirstName.getEditableText().toString();
-			final String lastName = editLastName.getEditableText().toString();
-			final Promoter promoter = (Promoter) promoterSpinner.getSelectedItem();
-			final short numberGuests = nGuests;
-			final ArrayList<NameValuePair> newGuest = new ArrayList<NameValuePair>();
-			newGuest.add(new BasicNameValuePair("first", firstName));
-			newGuest.add(new BasicNameValuePair("last", lastName));
-			newGuest.add(new BasicNameValuePair("code", promoter.getTag()));
-			newGuest.add(new BasicNameValuePair("nguests", Short.toString(numberGuests)));
-			newGuest.add(new BasicNameValuePair("op", DoormanActivity.OP_ADD_GUEST));
-			Log.v("Info", newGuest.toString());
-			// Send command off to be processed
+			try
+			{
+				final Command addGuest = Command.addGuest(editFirstName.getEditableText().toString(),
+						editLastName.getEditableText().toString(),
+						((Promoter) promoterSpinner.getSelectedItem()).getTag(),
+						nGuests,
+						null);
+			}
+			catch(UnsupportedEncodingException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	};
 	
 	public AddGuestFragment(final ArrayList<Promoter> mPromoterList)
 	{
-		promoterList = new ArrayList<Promoter>(mPromoterList);
+		promoterList.addAll(mPromoterList);
 	}
 	
 	@Override

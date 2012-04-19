@@ -237,3 +237,41 @@ public class ServerPoller extends TimerTask
 		}
 	}
 }
+
+
+/*
+public class ServerCaller extends AsyncTask<NameValuePair, Void, String>
+{
+	private final OnCompleteListener listener;
+	
+	protected ServerCaller(OnCompleteListener mListener)
+	{
+		this.listener = mListener;
+	}
+	
+	@Override
+	protected void onPreExecute()
+	{
+		
+	}
+
+	@Override
+	protected String doInBackground(NameValuePair... parameters)
+	{
+		return null;
+	}
+	
+	@Override
+	protected void onPostExecute(String result)
+	{
+		if(listener!=null)
+		{
+			listener.onComplete(result);
+		}
+	}
+	
+	protected interface OnCompleteListener
+	{
+		void onComplete(String data);
+	}
+*/

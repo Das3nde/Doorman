@@ -1,29 +1,17 @@
 package tabbie.doorman;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.BasicResponseHandler;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -34,136 +22,132 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-public class LoginFragment extends Fragment implements OnClickListener
-{
-	public static final String OP_LOAD_LIST = "loadVIPList";
+final class LoginFragment extends Fragment implements OnClickListener, Handler.Callback
+{	
+	private static final String LOADING = "Loading, please wait...";
+	private final Handler loginHandler = new Handler(this);
+	private EditText editName, editPassword;
+	private Button loginButton;
+	private Command loginCommand;
+	private ProgressDialog loadingDialog;
+	private boolean hasPendingCommands = false;
 	
-	private DownloadGuestList downloader;
-	private EditText listId;
-	private String loginQuery;
-	private boolean resumeTask = false;
-	
-	public LoginFragment(){};
+	protected LoginFragment(){};
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
-		/*
-		 * We want this fragment to retain its instance
-		 * across screen orientation changes, etc.
-		 * Until the object is DESTROYED, savedInstanceState
-		 * is always going to be NULL
-		 */
 		setRetainInstance(true);
 		super.onCreate(savedInstanceState);
 	}
 
 	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
+	public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState)
 	{
+		if(hasPendingCommands)
+		{
+			displayLoader();
+		}
 		final View fragmentDisplay = inflater.inflate(R.layout.login, null);
-		final Button loginButton = (Button) fragmentDisplay.findViewById(R.id.login_button);
+		
+		editName = (EditText) fragmentDisplay.findViewById(R.id.login_user_name);
+		editPassword = (EditText) fragmentDisplay.findViewById(R.id.login_password);
+		
+		loginButton = (Button) fragmentDisplay.findViewById(R.id.login_button);
 		loginButton.setOnClickListener(this);
-
-		listId = (EditText) fragmentDisplay.findViewById(R.id.login_list_id);
 		
 		return fragmentDisplay;
 	}
 
 	@Override
-	public void onClick(View v)
+	public void onClick(final View lButton)
 	{
-		/*
-		 * loginQuery cannot be strictly local
-		 * because if the AsyncTask is interrupted,
-		 * we need to remember what the String was
-		 * in order to restart it
-		 */
-		
-		loginQuery = (String) listId.getText().toString();
-		
-		/*
-		 * Downloader must also be accessible outside of this
-		 * method so that it can be canceled if the screen
-		 * orientation changes or the activity is otherwise
-		 * destroyed.
-		 */
-		
-		downloader = new DownloadGuestList(getActivity());
-		downloader.execute(loginQuery, OP_LOAD_LIST);
+		try
+		{
+			loginCommand = Command.login(editName.getEditableText().toString(),
+					editPassword.getEditableText().toString(),
+					loginHandler);
+			((DoormanActivity) getActivity()).sendCommand(loginCommand);
+			hasPendingCommands = true;
+			displayLoader();
+		}
+		catch(UnsupportedEncodingException e)
+		{
+			final Toast toast = Toast.makeText(getActivity(), "Error Logging In", Toast.LENGTH_SHORT);
+			toast.show();
+		}
 	}
 	
-	private class DownloadGuestList extends AsyncTask<String, String, Boolean>
+	/*
+	private class DownloadGuestList extends AsyncTask<Void, String, Boolean>
 	{
-		final FragmentActivity activity;
-		private ArrayList<Guest> guestList;
-		private ArrayList<Promoter> promoterList;
+		private final String operation, name, password;
 		private ProgressDialog loadingDialog;
 		private String errorMessage = "Default Error";
+		private ArrayList<Guest> guestList;
+		private ArrayList<Promoter> promoterList;
 		
-		public DownloadGuestList(final Activity mActivity)
+		protected DownloadGuestList(final String mOperation, final String mName, final String mPassword)
 		{
-			this.activity = (FragmentActivity) mActivity;
+			this.operation = mOperation;
+			this.name = mName;
+			this.password = mPassword;
 		}
 		
 		protected void onPreExecute()
 		{
-			loadingDialog = ProgressDialog.show(activity, "", "Loading. Please wait...", true);
+			loadingDialog = ProgressDialog.show(getActivity(), "", "Loading. Please wait...", true);
 		}
 
 		@Override
-		protected Boolean doInBackground(final String... params)
-		{
+		protected Boolean doInBackground(final Void... params)
+		{*/
 			/*
 			 * Obtain information from the server and store it
 			 * in "Guest" objects
 			 */
-			
+			/*
 			final List<NameValuePair> listAccessPairs = new ArrayList<NameValuePair>();
-			listAccessPairs.add(new BasicNameValuePair("list_id", params[0]));
-			listAccessPairs.add(new BasicNameValuePair("op", params[1]));
+			listAccessPairs.add(new BasicNameValuePair("op", operation));
+			listAccessPairs.add(new BasicNameValuePair("name", name));
+			listAccessPairs.add(new BasicNameValuePair("password", SHA1.hash(password)));
 			
 			final HttpClient tabbieClient = new DefaultHttpClient();
 			final HttpPost accessPost = new HttpPost("http://tabbie.co/cgi-bin/neo.py");
 			final ResponseHandler <String> res = new BasicResponseHandler();
 
 			String response = "";
-			
+			*/
 			/*
 			 * Try to create a complete ArrayList of Guest(s)
 			 * and if any exceptions are caught, be sure NOT
 			 * to instantiate a GuestList object
 			 */
-			
+			/*
 			try
 			{
 				accessPost.setEntity(new UrlEncodedFormEntity(listAccessPairs));
 				response = tabbieClient.execute(accessPost, res);
-				final JSONObject guestsObject = (JSONObject) new JSONTokener(response).nextValue();
+				final JSONObject listsObject = (JSONObject) new JSONTokener(response).nextValue();
 				
 				Log.v("Login", "Object returned: " + response);
+				errorMessage = response;
 				
-				if(guestsObject.has("error"))
+				if(listsObject.has("error"))
 				{
-					errorMessage = (String) guestsObject.get("error");
+					errorMessage = (String) listsObject.get("error");
 					return false;
 				}
 				else
 				{
-					final JSONArray guestsArray = (JSONArray) guestsObject.get("data");
-					final JSONArray promotersArray = (JSONArray) guestsObject.get("promoters");
-
-					/*
-					 * Iterate through each guest in the JSONArray
-					 * and create a new Guest object for each one
-					 */
-					Log.v("Making", "Promoters Array");
+					final JSONArray listsArray = (JSONArray) listsObject.get("data");
+					final String key = (String) listsObject.getString("key");
 					
-					promoterList = DoormanActivity.JSONTOPROMOTERLIST(promotersArray);
-					
-					guestList = DoormanActivity.JSONTOGUESTLIST(guestsArray, promoterList);
-
-					return true;
+					final short length = (short) listsArray.length();
+					for(short i = 0; i < length; i++)
+					{
+						final JSONObject list = (JSONObject) listsArray.getJSONObject(i);
+					}
 				}
 			}
 			catch(JSONException jsonError)
@@ -190,9 +174,10 @@ public class LoginFragment extends Fragment implements OnClickListener
 			return false;
 		}
 		
-		protected void dismissDialog()
+		protected void dismiss()
 		{
 			loadingDialog.dismiss();
+			this.cancel(true);
 		}
 		
 		protected void onPostExecute(Boolean params)
@@ -201,54 +186,116 @@ public class LoginFragment extends Fragment implements OnClickListener
 			if(params)
 			{
 				final GuestListFragment masterList = new GuestListFragment(loginQuery, guestList, promoterList);
-				final FragmentTransaction transaction = activity.getSupportFragmentManager().beginTransaction();
+				final FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
 				transaction.replace(R.id.main_view, masterList, DoormanActivity.LIST_TAG);
 				transaction.commit();
 			}
 			else
 			{
-				final Toast toast = Toast.makeText(activity, errorMessage, Toast.LENGTH_SHORT);
+				final Toast toast = Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_SHORT);
 				toast.show();
 			}
 		}
-	}
-	
-	@Override
-	public void onActivityCreated(Bundle savedInstanceState)
-	{
-		/*
-		 * We made a note of whether or not a downloader
-		 * was running when (if) the activity restarted itself.
-		 * If that task never completed, let's go ahead
-		 * and finish it here.
-		 */
-		
-		if(resumeTask)
-		{
-			downloader = new DownloadGuestList(getActivity());
-			downloader.execute(loginQuery, OP_LOAD_LIST);
-			resumeTask = false;
-		}
-		super.onActivityCreated(savedInstanceState);
-	}
+	}*/
 	
 	@Override
 	public void onStop()
 	{
-		/*
-		 * Check and see if we have a downloader active.
-		 * If so, check its status - if it's finished, we
-		 * can ignore it; otherwise we need to cancel it so
-		 * the application can restart during config change
-		 */
-		if(downloader!=null && downloader.getStatus()!=AsyncTask.Status.FINISHED)
+		if(loadingDialog!=null && loadingDialog.isShowing())
 		{
-			downloader.dismissDialog();
-			downloader.cancel(true);
-			resumeTask = true;
+			loadingDialog.dismiss();
+		}
+		if(loginCommand!=null)
+		{
+			loginCommand.cancel();
+			loginCommand = null;
 		}
 		super.onStop();
 	}
+
+	@Override
+	public boolean handleMessage(final Message msg)
+	{
+		hasPendingCommands = false;
+		if(msg.obj instanceof java.lang.String)
+		{
+			final String response = (String) msg.obj;
+			Log.v("LoginFragment", "Response is: " + response);
+			ArrayList<ListEntity> list = null;
+			try
+			{
+				final JSONObject listsObject = (JSONObject) new JSONTokener(response).nextValue();
+				if(listsObject.has("error"))
+				{
+					displayError(listsObject.getString("error"));
+				}
+				else
+				{
+					((DoormanActivity) getActivity()).setEncryptionKey(listsObject.getString("key"));
+					list = buildList(listsObject.getJSONArray("data"));
+				}
+			}
+			catch(JSONException e)
+			{
+				displayError("Error formatting server response");
+			}
+			finally
+			{
+				if(loadingDialog!=null && loadingDialog.isShowing())
+				{
+					loadingDialog.dismiss();
+				}
+				
+				if(list!=null)
+				{
+					final ListListFragment lists = new ListListFragment(list);
+					final FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
+					transaction.replace(R.id.main_view, lists, DoormanActivity.LISTS_FRAGMENT);
+					transaction.commit();
+				}
+			}
+		}
+		else if(msg.obj instanceof Command)
+		{
+			if(loadingDialog!=null && loadingDialog.isShowing())
+			{
+				loadingDialog.dismiss();
+			}
+			displayError("Unable to connect to server");
+		}
+		return true;
+	}
 	
+	private ArrayList<ListEntity> buildList(final JSONArray data)
+	{
+		final ArrayList<ListEntity> list = new ArrayList<ListEntity>();
+		final short length = (short) data.length();
+		for(short i = 0; i < length; i++)
+		{
+			try
+			{
+				final JSONObject temp = data.getJSONObject(i);
+				final ListEntity tempEntity = new ListEntity(temp.getString("e_str_id"),
+					(short) temp.getInt("e_id"),
+					temp.getString("e_name"));
+				list.add(tempEntity);
+			}
+			catch(JSONException e)
+			{
+				Log.v("Error", "Unable to create list entity " + i + " from JSON");
+			}
+		}
+		return list;
+	}
 	
+	private void displayError(final String errorMessage)
+	{
+		final Toast toast = Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_LONG);
+		toast.show();
+	}
+	
+	private void displayLoader()
+	{
+		loadingDialog = ProgressDialog.show(getActivity(), null, LOADING);
+	}
 }

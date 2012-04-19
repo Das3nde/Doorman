@@ -15,7 +15,11 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
@@ -24,40 +28,34 @@ import android.view.Menu;
 
 public class DoormanActivity extends FragmentActivity
 {
-	protected static final String LIST_TAG = "list";
+	protected static final String SERVER_THREAD = "callServer";
+	protected static final String GUESTLIST_FRAGMENT = "guestList", LISTS_FRAGMENT = "lists";
 	protected static final String LIST_SAVE_FILE = "guest_list";
-	protected static final String OP_ADD_GUEST = "addGuest";
+	private final ServerHandlerThread serverCaller = new ServerHandlerThread(SERVER_THREAD);
+	private Handler serverHandler;
 	private FragmentTransaction transaction;
+	
 	
 	@Override
     protected void onCreate(final Bundle savedInstanceState)
     {
 		Log.v("Activity.onCreate", "Called");
         super.onCreate(savedInstanceState);
-    	this.setContentView(R.layout.main);
+    	setContentView(R.layout.main);
     	
-    	if(transaction == null)
-    	{
-    		transaction = this.getSupportFragmentManager().beginTransaction();
-    	}
+    	serverCaller.start();
+    	serverHandler = serverCaller.getHandler();
     	
     	if(savedInstanceState==null)
     	{
-    		ArrayList<Promoter> test = new ArrayList<Promoter>();
-    		test.add(new Promoter("Justin Knutson", "JAK", 12));
-    		test.add(new Promoter("Valeri Karpov", "VAL", 23));
-    		transaction.replace(R.id.main_view, new AddGuestFragment(test));
+    		if(transaction==null)
+    		{
+    			transaction = getSupportFragmentManager().beginTransaction();
+    		}
+    		transaction.replace(R.id.main_view, new LoginFragment());
     		transaction.commit();
+    		transaction = null;
     	}
-    	
-    	/*
-    	if(savedInstanceState==null)
-    	{
-    		final LoginFragment userLogin = new LoginFragment();
-    		final FragmentTransaction transaction = this.getSupportFragmentManager().beginTransaction();
-    		transaction.replace(R.id.main_view, userLogin);
-    		transaction.commit();
-    	}*/
     	
     	/*
     	 * Try to restore the file SAVELISTFILE. If restore is
@@ -88,6 +86,15 @@ public class DoormanActivity extends FragmentActivity
 	protected void onRestart()
 	{
 		Log.v("Activity.onRestart", "Called");
+		
+		/*
+		 * When the activity restarts itself, the serverCaller should resume its operations
+		 */
+		/*
+		synchronized(serverCaller)
+		{
+			serverCaller.notify();
+		}*/
 		super.onRestart();
 	}
 	
@@ -118,7 +125,7 @@ public class DoormanActivity extends FragmentActivity
 		
 		try
 		{
-			final GuestListFragment list = (GuestListFragment) getSupportFragmentManager().findFragmentByTag(LIST_TAG);
+			final GuestListFragment list = (GuestListFragment) getSupportFragmentManager().findFragmentByTag(GUESTLIST_FRAGMENT);
 			/*
 			 * If findFragmentByTag evaluated to NULL
 			 * be sure we don't throw a nullPointerException
@@ -157,6 +164,8 @@ public class DoormanActivity extends FragmentActivity
 	@Override
 	protected void onDestroy()
 	{
+		serverHandler.removeCallbacksAndMessages(null);
+		serverCaller.quit();
 		Log.v("Activity.onDestroy", "Called");
 		super.onDestroy();
 		
@@ -203,7 +212,7 @@ public class DoormanActivity extends FragmentActivity
         {
         case KeyEvent.KEYCODE_SEARCH:
         	Log.v("DoormanActivity.onKeyDown()", "KEYCODE_SEARCH");
-        	final GuestListFragment list = (GuestListFragment) getSupportFragmentManager().findFragmentByTag(LIST_TAG);
+        	final GuestListFragment list = (GuestListFragment) getSupportFragmentManager().findFragmentByTag(GUESTLIST_FRAGMENT);
         	/*
         	 * We only care about the search button if there
         	 * is a GuestListFragment and it is currently visible
@@ -299,7 +308,7 @@ public class DoormanActivity extends FragmentActivity
 			 */
 			list.setServerPoller(pendingCommands);
 			final FragmentTransaction transaction = this.getSupportFragmentManager().beginTransaction();
-		    transaction.replace(R.id.main_view, list, LIST_TAG);
+		    transaction.replace(R.id.main_view, list, GUESTLIST_FRAGMENT);
 		    transaction.commit();
 			return true;
 		}
@@ -410,5 +419,38 @@ public class DoormanActivity extends FragmentActivity
 			e.printStackTrace();
 		}
     	return pendingCommands;
+    }
+    
+    protected static void showLoadingDialog()
+    {
+    	// Code here
+    }
+    
+    protected void sendCommand(final Command command)
+    {
+    	final Message message = serverHandler.obtainMessage();
+    	message.obj = command;
+    	serverHandler.sendMessage(message);
+    }
+    
+    protected void sendCommand(final Command command, final long uptimeMillis)
+    {
+    	final Message message = serverHandler.obtainMessage();
+    	message.obj = command;
+    	serverHandler.sendMessageAtTime(message, uptimeMillis);
+    }
+    
+    protected void setEncryptionKey(final String key)
+    {
+		final SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+		final SharedPreferences.Editor editor = settings.edit();
+		editor.putString("key", key);
+		editor.commit();
+		Log.v("DoormanActivity", "Encryption Key added to Shared Preferences: " + key);
+    }
+    
+    protected String getEncryptionKey()
+    {
+    	return getPreferences(Context.MODE_PRIVATE).getString("key", null);
     }
 }

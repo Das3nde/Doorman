@@ -9,4 +9,6 @@
     <string name = "add_guest_nguests">Guests of Guest</string>
     <string name = "minus_sign">-</string>
     <string name = "plus_sign">+</string>
+    <string name = "password">Password</string>
+    <string name = "username">Name</string>
 </resources>

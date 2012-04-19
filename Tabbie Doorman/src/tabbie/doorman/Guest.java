@@ -11,11 +11,11 @@ import android.util.Log;
 
 public class Guest extends HashMap<String, String> implements Comparable<Guest>, Parcelable
 {
+	private static final long serialVersionUID = -4606260121276310252L;
 	public static final byte ALL = 2;
 	public static final byte UNCHECKED = 0;
 	public static final byte CHECKED = 1;
 	public static final Promoter ALLPROMOTERS = new Promoter("Default", "default", -1);
-	private static final long serialVersionUID = 1L;
 	private final Promoter promoter;
 	private final String firstName, lastName;
 	private final int numGuests, guestId;
