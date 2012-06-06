@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/guest_list_element_layout"
+    android:layout_width="fill_parent"
+    android:layout_height="90dp"
+    android:gravity="center"
+    android:padding="10dp">
+    
+    <TextView
+        android:id="@+id/guest_list_element_promoter"
+        android:text="Promoter Name"
+        android:textColor="@color/WHITE"
+        android:textSize="14dp"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_centerInParent="true" />
+    
+    <TextView
+        android:id="@+id/guest_list_element_name"
+        android:text="Last Name, First Name"
+        android:textColor="@color/WHITE"
+        android:textSize="20dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+		android:layout_above="@id/guest_list_element_promoter" />
+    
+    <TextView
+        android:id="@+id/guest_list_element_guests"
+        android:text="Guests: 0"
+        android:textColor="@color/WHITE"
+        android:textSize="10dp"
+        android:layout_width="fill_parent"
+        android:layout_height="15dp"
+        android:gravity="center"
+        android:layout_below="@id/guest_list_element_promoter"
+        android:layout_centerHorizontal="true" />
+    
+</RelativeLayout>

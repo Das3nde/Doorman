@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:id="@+id/promoter_header_container"
+        android:layout_alignParentTop="true"
+        android:background="@drawable/promoter_title_bar"
+        android:padding="10dp"
+        android:visibility="visible">
+        
+        <TextView
+	        android:gravity="center"
+	        android:id="@+id/promoter_name_header"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:text="All Promoters"
+	        android:textColor="@color/BLACK"
+	        android:textSize="25dp" />
+    </LinearLayout>
+		
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:id="@+id/search_bar_container"
+        android:layout_below="@id/promoter_header_container"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:visibility="gone">
+        
+	    <EditText
+	        android:id="@+id/search_bar"
+	        android:layout_width="250dp"
+	        android:layout_height="wrap_content"
+	        android:hint="@string/search" />
+	    
+	    <Button
+	        android:id="@+id/search_clear_button"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="@string/clear"/>
+	    
+	</LinearLayout>
+	
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:id="@+id/promoter_toolbar"
+	    android:orientation="horizontal"
+	    android:gravity="center"
+	    android:layout_height="wrap_content"
+	    android:layout_width="fill_parent"
+	    android:layout_alignParentBottom="true"
+	    android:padding="5dp" >
+	    
+		<Button 
+		    android:id="@+id/add_patron_button"
+		    android:layout_height="wrap_content"
+		    android:layout_width="wrap_content"
+		    android:layout_marginRight="20dp"
+		    android:background="@layout/orange_button"
+		    android:text="Add Patron"
+		    android:textColor="@color/WHITE"
+		    android:textSize="14dp"/>
+		    
+	    <Button
+	        android:id="@+id/promoter_toolbar_decrement_guests"
+	        android:layout_height="40dp"
+	        android:layout_width="40dp"
+	        android:text="-"
+	        android:textColor="@color/BLACK"
+	        android:textSize="20dp"
+	        android:background="@drawable/increment_buttons"
+	        android:gravity="center" />
+	    
+	    <TextView
+	        android:id="@+id/promoter_toolbar_nguests_counter"
+	        android:text="25"
+	        android:textColor="@color/WHITE"
+	        android:textSize="20dp"
+	        android:layout_height="wrap_content"
+	        android:layout_width="50dp"
+	        android:gravity="center"/>
+	    
+	    <Button
+	        android:id="@+id/promoter_toolbar_increment_guests"
+	        android:layout_height="40dp"
+	        android:layout_width="40dp"
+	        android:text="+"
+	        android:textColor="@color/BLACK"
+	        android:textSize="20dp"
+	        android:background="@drawable/increment_buttons"
+	        android:gravity="center"/>
+	</LinearLayout>
+    
+	<GridView xmlns:android="http://schemas.android.com/apk/res/android"
+	     android:descendantFocusability="blocksDescendants"
+		 android:id="@+id/guest_list"
+		 android:layout_width="fill_parent"
+		 android:layout_height="wrap_content"
+		 android:numColumns="auto_fit"
+		 android:columnWidth="250dp"
+		 android:verticalSpacing="10dp"
+		 android:horizontalSpacing="10dp"
+		 android:stretchMode="columnWidth"
+		 android:layout_below="@id/search_bar_container"
+		 android:layout_above="@id/promoter_toolbar"/>
+	
+	<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:id="@+id/empty_list_text_view"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    android:layout_below="@id/search_bar_container"
+	    android:layout_above="@id/promoter_toolbar"
+	    android:gravity="center"
+	    android:text="@string/empty_list"
+	    android:textColor="@color/WHITE"
+	    android:textSize="20dp"
+	    android:visibility="gone" />
+	    
+
+</RelativeLayout>

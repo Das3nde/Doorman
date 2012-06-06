@@ -10,12 +10,15 @@ public class Promoter implements Parcelable, Comparable<Promoter>
 {
 	private final String name, tag;
 	private final int id;
+	private int nPatronsChecked, nPatrons;
 	
-	public Promoter(final String pName, final String pTag, final int pId)
+	public Promoter(final String pName, final String pTag, final int pId, final int pNPatrons, final int pNPatronsChecked)
 	{
 		this.name = pName;
 		this.tag = pTag;
 		this.id = pId;
+		this.nPatrons = pNPatrons;
+		this.nPatronsChecked = pNPatronsChecked;
 	}
 	
 	@Override
@@ -32,6 +35,33 @@ public class Promoter implements Parcelable, Comparable<Promoter>
 	protected int getId()
 	{
 		return id;
+	}
+	
+	protected String getName()
+	{
+		return name;
+	}
+	
+	protected int getNPatronsChecked()
+	{
+		return nPatronsChecked;
+	}
+	
+	protected int getNPatrons()
+	{
+		return nPatrons;
+	}
+	
+	protected void incrementPatrons()
+	{
+		nPatronsChecked++;
+		nPatrons++;
+	}
+	
+	protected void decrementPatrons()
+	{
+		nPatronsChecked--;
+		nPatrons--;
 	}
 
 	@Override

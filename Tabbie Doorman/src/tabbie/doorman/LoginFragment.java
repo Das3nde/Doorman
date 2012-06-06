@@ -8,6 +8,9 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -24,29 +27,43 @@ import android.widget.Toast;
 
 final class LoginFragment extends Fragment implements OnClickListener, Handler.Callback
 {	
-	private static final String LOADING = "Loading, please wait...";
+	private static final String TAG = "LoginFragment";
+	private static final String LOADING_MESSAGE = "Loading, please wait...";
 	private final Handler loginHandler = new Handler(this);
+	private Toast error;
+	private SelectListFragment selectListFragment;
 	private EditText editName, editPassword;
 	private Button loginButton;
 	private Command loginCommand;
 	private ProgressDialog loadingDialog;
 	private boolean hasPendingCommands = false;
 	
-	protected LoginFragment(){};
+	public LoginFragment(){};
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
+		Log.v(TAG, "OnCreate");
+		
+		// Retain variables over configuration changes
 		setRetainInstance(true);
+		
+		// Make sure no save files exist still
+		((DoormanActivity) getActivity()).deleteSaveCache();
+		
 		super.onCreate(savedInstanceState);
 	}
 
 	@Override
 	public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState)
 	{
+		Log.v(TAG, "OnCreateView");
+		
+		// Since the view is redrawn on configuration changes, we have to check if there are any outstanding login Commands
+		// and determine whether or not a loading message should be displayed in the context
 		if(hasPendingCommands)
 		{
-			displayLoader();
+			displayLoader(LOADING_MESSAGE);
 		}
 		final View fragmentDisplay = inflater.inflate(R.layout.login, null);
 		
@@ -58,224 +75,180 @@ final class LoginFragment extends Fragment implements OnClickListener, Handler.C
 		
 		return fragmentDisplay;
 	}
+	
+	@Override
+	public void onResume()
+	{
+		finishProcessingCommand();
+		super.onResume();
+	}
+	
+	@Override
+	public void onDetach()
+	{
+		// Fragments are detached during configuration changes; make sure we don't leak a loading message here!
+		dismissLoader();
+		
+		Log.v(TAG, "OnDetach");
+		super.onDetach();
+	}
+	
+	@Override
+	public void onDestroy()
+	{
+		// We need to save information when the fragment is finally going to be destroyed
+		/*
+		try
+		{
+			final JSONObject storable = new JSONObject();
+			storable.put("name", editName.getEditableText().toString());
+			storable.put("password", editPassword.getEditableText().toString());
+			final String writable = storable.toString();
+			final FileOutputStream fos = getActivity().openFileOutput(DoormanActivity.LOGIN_INFO, Context.MODE_PRIVATE);
+			fos.write(writable.getBytes());
+			fos.close();
+		}
+		catch (FileNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		catch (JSONException e)
+		{
+			e.printStackTrace();
+		}
+		*/
+		Log.v(TAG, "OnDestroy");
+		super.onDestroy();
+	}
 
 	@Override
 	public void onClick(final View lButton)
 	{
-		try
-		{
-			loginCommand = Command.login(editName.getEditableText().toString(),
-					editPassword.getEditableText().toString(),
-					loginHandler);
-			((DoormanActivity) getActivity()).sendCommand(loginCommand);
-			hasPendingCommands = true;
-			displayLoader();
-		}
-		catch(UnsupportedEncodingException e)
-		{
-			final Toast toast = Toast.makeText(getActivity(), "Error Logging In", Toast.LENGTH_SHORT);
-			toast.show();
-		}
-	}
-	
-	/*
-	private class DownloadGuestList extends AsyncTask<Void, String, Boolean>
-	{
-		private final String operation, name, password;
-		private ProgressDialog loadingDialog;
-		private String errorMessage = "Default Error";
-		private ArrayList<Guest> guestList;
-		private ArrayList<Promoter> promoterList;
+		final ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+		final NetworkInfo status = (NetworkInfo) cm.getActiveNetworkInfo();
 		
-		protected DownloadGuestList(final String mOperation, final String mName, final String mPassword)
+		// Make sure we can send a command before we actually send a command
+		if(status!=null && status.isConnected())
 		{
-			this.operation = mOperation;
-			this.name = mName;
-			this.password = mPassword;
-		}
-		
-		protected void onPreExecute()
-		{
-			loadingDialog = ProgressDialog.show(getActivity(), "", "Loading. Please wait...", true);
-		}
-
-		@Override
-		protected Boolean doInBackground(final Void... params)
-		{*/
-			/*
-			 * Obtain information from the server and store it
-			 * in "Guest" objects
-			 */
-			/*
-			final List<NameValuePair> listAccessPairs = new ArrayList<NameValuePair>();
-			listAccessPairs.add(new BasicNameValuePair("op", operation));
-			listAccessPairs.add(new BasicNameValuePair("name", name));
-			listAccessPairs.add(new BasicNameValuePair("password", SHA1.hash(password)));
-			
-			final HttpClient tabbieClient = new DefaultHttpClient();
-			final HttpPost accessPost = new HttpPost("http://tabbie.co/cgi-bin/neo.py");
-			final ResponseHandler <String> res = new BasicResponseHandler();
-
-			String response = "";
-			*/
-			/*
-			 * Try to create a complete ArrayList of Guest(s)
-			 * and if any exceptions are caught, be sure NOT
-			 * to instantiate a GuestList object
-			 */
-			/*
 			try
 			{
-				accessPost.setEntity(new UrlEncodedFormEntity(listAccessPairs));
-				response = tabbieClient.execute(accessPost, res);
-				final JSONObject listsObject = (JSONObject) new JSONTokener(response).nextValue();
-				
-				Log.v("Login", "Object returned: " + response);
-				errorMessage = response;
-				
-				if(listsObject.has("error"))
-				{
-					errorMessage = (String) listsObject.get("error");
-					return false;
-				}
-				else
-				{
-					final JSONArray listsArray = (JSONArray) listsObject.get("data");
-					final String key = (String) listsObject.getString("key");
-					
-					final short length = (short) listsArray.length();
-					for(short i = 0; i < length; i++)
-					{
-						final JSONObject list = (JSONObject) listsArray.getJSONObject(i);
-					}
-				}
+				loginCommand = Command.login(editName.getEditableText().toString(),
+						editPassword.getEditableText().toString(),
+						loginHandler);
+				((DoormanActivity) getActivity()).sendCommand(loginCommand);
+				hasPendingCommands = true;
+				displayLoader(LOADING_MESSAGE);
 			}
-			catch(JSONException jsonError)
+			catch(UnsupportedEncodingException e)
 			{
-				errorMessage = "Error retrieving data from server";
+				error = Toast.makeText(getActivity(), "Error Logging In", Toast.LENGTH_SHORT);
+				e.printStackTrace();
+				error.show();
+				error = null;
 			}
-			catch(NullPointerException nullData)
-			{
-				nullData.printStackTrace();
-				errorMessage = "Guest List is Null";
-			}
-			catch (UnsupportedEncodingException badEncoding)
-			{
-				errorMessage = "Unsupported Encoding";
-			}
-			catch (ClientProtocolException badClientProtocol)
-			{
-				errorMessage = "Bad Client Protocol";
-			}
-			catch (IOException badIoStream)
-			{
-				errorMessage = "Bad IO Stream";
-			}
-			return false;
 		}
-		
-		protected void dismiss()
+		else
 		{
-			loadingDialog.dismiss();
-			this.cancel(true);
+			error = Toast.makeText(getActivity(), "No Internet Connection", Toast.LENGTH_SHORT);
+			error.show();
+			error = null;
 		}
-		
-		protected void onPostExecute(Boolean params)
-		{
-			loadingDialog.dismiss();
-			if(params)
-			{
-				final GuestListFragment masterList = new GuestListFragment(loginQuery, guestList, promoterList);
-				final FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
-				transaction.replace(R.id.main_view, masterList, DoormanActivity.LIST_TAG);
-				transaction.commit();
-			}
-			else
-			{
-				final Toast toast = Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_SHORT);
-				toast.show();
-			}
-		}
-	}*/
-	
-	@Override
-	public void onStop()
-	{
-		if(loadingDialog!=null && loadingDialog.isShowing())
-		{
-			loadingDialog.dismiss();
-		}
-		if(loginCommand!=null)
-		{
-			loginCommand.cancel();
-			loginCommand = null;
-		}
-		super.onStop();
 	}
 
 	@Override
 	public boolean handleMessage(final Message msg)
 	{
-		hasPendingCommands = false;
+		String key = null;
+
+		// String = good; this should be a JSONString
 		if(msg.obj instanceof java.lang.String)
 		{
 			final String response = (String) msg.obj;
 			Log.v("LoginFragment", "Response is: " + response);
-			ArrayList<ListEntity> list = null;
+			ArrayList<SelectableList> list = null;
 			try
 			{
 				final JSONObject listsObject = (JSONObject) new JSONTokener(response).nextValue();
 				if(listsObject.has("error"))
 				{
-					displayError(listsObject.getString("error"));
+					error = Toast.makeText(getActivity(), "Invalid name/password", Toast.LENGTH_LONG);
 				}
 				else
 				{
-					((DoormanActivity) getActivity()).setEncryptionKey(listsObject.getString("key"));
+					// Retrieve our String, build our list (SelectList)
+					key = listsObject.getString("key");
 					list = buildList(listsObject.getJSONArray("data"));
 				}
 			}
 			catch(JSONException e)
 			{
-				displayError("Error formatting server response");
+				error = Toast.makeText(getActivity(), "Error formatting server response", Toast.LENGTH_LONG);
 			}
 			finally
 			{
-				if(loadingDialog!=null && loadingDialog.isShowing())
-				{
-					loadingDialog.dismiss();
-				}
-				
 				if(list!=null)
 				{
-					final ListListFragment lists = new ListListFragment(list);
-					final FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
-					transaction.replace(R.id.main_view, lists, DoormanActivity.LISTS_FRAGMENT);
-					transaction.commit();
+					selectListFragment = new SelectListFragment(list, key);
 				}
 			}
 		}
 		else if(msg.obj instanceof Command)
 		{
-			if(loadingDialog!=null && loadingDialog.isShowing())
-			{
-				loadingDialog.dismiss();
-			}
-			displayError("Unable to connect to server");
+			error = Toast.makeText(getActivity(), "Unable to connect to server", Toast.LENGTH_LONG);
 		}
+		
+		// Regardless of the outcome, we no longer have any pending commands
+		hasPendingCommands = false;		
+		dismissLoader();
+		
+		if(isResumed())
+		{
+			// Assuming there is still an activity, finish processing the command now
+			finishProcessingCommand();
+		}
+		
 		return true;
 	}
 	
-	private ArrayList<ListEntity> buildList(final JSONArray data)
+	/**
+	 * Method used to ensure that any commands parsed before this fragment was detached
+	 * from an activity are finished when the fragment is resumed. If the command terminated
+	 * in an error, the error will be displayed as a Toast
+	 */
+	private void finishProcessingCommand()
 	{
-		final ArrayList<ListEntity> list = new ArrayList<ListEntity>();
-		final short length = (short) data.length();
-		for(short i = 0; i < length; i++)
+		if(error!=null)
+		{
+			error.show();
+			error = null;
+		}
+		else if(selectListFragment!=null)
+		{
+			final FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
+			transaction.replace(R.id.main_view, selectListFragment, DoormanActivity.SELECT_LIST_FRAGMENT);
+			transaction.commit();
+		}
+	}
+	
+	/**
+	 * Attempt to build a list of SelectableList using JSONData
+	 * that was returned by the server and processed by this object. 
+	 * This will always return a list, even if it is empty.
+	 */
+	protected static ArrayList<SelectableList> buildList(final JSONArray data)
+	{
+		final ArrayList<SelectableList> list = new ArrayList<SelectableList>();
+		final int length = data.length();
+		for(int i = 0; i < length; i++)
 		{
 			try
 			{
 				final JSONObject temp = data.getJSONObject(i);
-				final ListEntity tempEntity = new ListEntity(temp.getString("e_str_id"),
+				final SelectableList tempEntity = new SelectableList(temp.getString("e_str_id"),
 					(short) temp.getInt("e_id"),
 					temp.getString("e_name"));
 				list.add(tempEntity);
@@ -288,14 +261,23 @@ final class LoginFragment extends Fragment implements OnClickListener, Handler.C
 		return list;
 	}
 	
-	private void displayError(final String errorMessage)
+	/**
+	 * Convenience method to show a ProgressDialog with loadingMessage
+	 * @param loadingMessage - the message to display
+	 */
+	private void displayLoader(final String loadingMessage)
 	{
-		final Toast toast = Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_LONG);
-		toast.show();
+		loadingDialog = ProgressDialog.show(getActivity(), null, loadingMessage);
 	}
 	
-	private void displayLoader()
+	/**
+	 * Convenience method to dismiss a ProgressDialog created with displayLoader()
+	 */
+	private void dismissLoader()
 	{
-		loadingDialog = ProgressDialog.show(getActivity(), null, LOADING);
+		if(loadingDialog!=null && loadingDialog.isShowing())
+		{
+			loadingDialog.dismiss();
+		}
 	}
 }

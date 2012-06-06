@@ -65,10 +65,76 @@
 	        android:layout_centerHorizontal="true"
 	        android:layout_margin="5dp"/>
 	    
+	    <TextView 
+	        android:id="@+id/add_name_promoter"
+	        android:layout_below="@id/add_name_first_edit"
+	        android:textSize="14dp"
+	        android:textColor="@color/WHITE"
+	        android:text="@string/add_guest_promoter"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_margin="5dp"
+	        android:gravity="center"
+	        android:layout_centerHorizontal="true"/>
+		<Spinner
+		    android:id="@+id/add_name_promoter_spinner"
+		    android:layout_below="@id/add_name_promoter"
+		    android:layout_width="fill_parent"
+		    android:layout_height="wrap_content"
+		    android:layout_margin="5dp" />
+	    
+	    <TextView 
+	        android:id="@+id/add_name_nguests"
+	        android:layout_below="@id/add_name_promoter_spinner"
+	        android:textSize="14dp"
+	        android:textColor="@color/WHITE"
+	        android:text="@string/add_guest_nguests"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_margin="5dp"
+	        android:gravity="center"
+	        android:layout_centerHorizontal="true"/>
+		
+		<LinearLayout
+		    android:id="@+id/add_name_nguests_layout"
+		    android:layout_below="@id/add_name_nguests"
+		    android:layout_width="fill_parent"
+		    android:layout_height="wrap_content"
+		    android:gravity="center"
+		    android:layout_margin="5dp">
+		    
+		    <Button
+		        android:id="@+id/add_name_decrement_guests"
+		        android:layout_height="50dp"
+		        android:layout_width="50dp"
+		        android:gravity="center"
+		        android:text="@string/minus_sign"
+		        android:textColor="@color/BLACK"
+		        android:textSize="30dp"/>
+		    
+		    <EditText 
+		        android:id="@+id/add_name_nguests_counter"
+		        android:inputType="number"
+		        android:layout_height="50dp"
+		        android:layout_width="50dp"
+		        android:gravity="center"
+		        android:layout_marginLeft="20dp"
+		        android:layout_marginRight="20dp"/>
+		    
+		    <Button
+		        android:id="@+id/add_name_increment_guests"
+		        android:layout_height="50dp"
+		        android:layout_width="50dp"
+		        android:gravity="center"
+		        android:text="@string/plus_sign"
+		        android:textColor="@color/BLACK"
+		        android:textSize="30dp"/>
+		</LinearLayout>
+	
 	<Button
 	    android:id="@+id/add_name_add_guest_button"
 	    android:background="@layout/orange_button"
-	    android:layout_below="@id/add_name_first_edit"
+	    android:layout_below="@id/add_name_nguests_layout"
 	    android:layout_width="wrap_content"
 	    android:layout_height="wrap_content"
 	    android:textSize="20dp"

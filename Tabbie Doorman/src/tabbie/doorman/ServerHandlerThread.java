@@ -23,10 +23,13 @@ public class ServerHandlerThread extends HandlerThread implements Handler.Callba
 	private final HttpParams callParams = new BasicHttpParams();
 	private final HttpClient tabbieClient;
 	private Handler serverCallHandler;
+	private boolean paused = false;
 	
 	public ServerHandlerThread(final String name)
 	{
 		super(name);
+		
+		// Socket and Connection will time out after 5 seconds
 		HttpConnectionParams.setConnectionTimeout(callParams, 5000);
 		HttpConnectionParams.setSoTimeout(callParams, 5000);
 		tabbieClient = new DefaultHttpClient(callParams);
@@ -35,30 +38,59 @@ public class ServerHandlerThread extends HandlerThread implements Handler.Callba
 	@Override
 	public boolean handleMessage(final Message msg)
 	{
+		// Don't run a Command through here unless our BroadcastReceiver has set paused to FALSE
+		if(paused)
+		{
+			try
+			{
+				synchronized(this)
+				{
+					wait();
+				}
+			}
+			catch(InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+		// Make sure the message we are processing is a command
 		if(msg.obj instanceof Command)
 		{
 			final Command command = (Command) msg.obj;
-			accessPost.setEntity(command.getEntity());
-			Object response = null;
-			try
+			
+			// Check here to see if our Command is still viable. Canceled commands will be cleaned up elsewhere
+			if(command.isCancelled())
 			{
-				response = tabbieClient.execute(accessPost, res);
+				Log.v("ServerHandlerThread", "Command is canceled");
 			}
-			catch(IOException e)
+			else
 			{
-				response = command;
-			}
-			finally
-			{
-				if(command.getHandler()!=null)
+				accessPost.setEntity(command.getEntity());
+				Object response = null;
+				try
 				{
-					final Handler responseHandler = command.getHandler();
-					if(command.isCancelled())
+					synchronized(command)
 					{
-						Log.v("SeverHandlerThread", "Command has been cancelled");
+						// Ensure that the command will not be modified after this point
+						// We do not want to synchronize over tabbieClient's execution because the UI thread will pause waiting for the results
+						command.lockProcess();
 					}
-					else
+					response = tabbieClient.execute(accessPost, res);
+				}
+				catch(IOException e)
+				{
+					e.printStackTrace();
+					
+					// Return the command as a message to the handler so if need be the command can be reissued
+					response = command;
+				}
+				finally
+				{
+					// Only send a message if there is a handler available
+					if(command.getHandler()!=null)
 					{
+						final Handler responseHandler = command.getHandler();
 						synchronized(responseHandler)
 						{
 							final Message reply = responseHandler.obtainMessage();
@@ -87,5 +119,25 @@ public class ServerHandlerThread extends HandlerThread implements Handler.Callba
 			serverCallHandler = new Handler(getLooper(), this);
 		}
 		return serverCallHandler;
+	}
+	
+	protected void pause()
+	{
+		Log.v("ServerHandlerThread", "Paused");
+		paused = true;
+	}
+	
+	protected void unPause()
+	{
+		synchronized(this)
+		{
+			notifyAll();
+		}
+		paused = false;
+	}
+	
+	protected boolean isPaused()
+	{
+		return paused;
 	}
 }

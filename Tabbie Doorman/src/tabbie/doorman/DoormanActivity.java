@@ -2,39 +2,37 @@ package tabbie.doorman;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Message;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.Menu;
 
 public class DoormanActivity extends FragmentActivity
 {
 	protected static final String SERVER_THREAD = "callServer";
-	protected static final String GUESTLIST_FRAGMENT = "guestList", LISTS_FRAGMENT = "lists";
-	protected static final String LIST_SAVE_FILE = "guest_list";
+	protected static final String PATRON_LIST_FRAGMENT = "patronList", SELECT_LIST_FRAGMENT = "lists";
+	protected static final String PATRON_LIST_INFO = "guest_list", SELECT_LIST_INFO = "list"/*, LOGIN_INFO = "key"*/;
 	private final ServerHandlerThread serverCaller = new ServerHandlerThread(SERVER_THREAD);
+	private final ConnectionChangeReceiver connectivityReceiver = new ConnectionChangeReceiver();
 	private Handler serverHandler;
 	private FragmentTransaction transaction;
 	
+	// Called when the activity is created
 	
 	@Override
     protected void onCreate(final Bundle savedInstanceState)
@@ -43,165 +41,85 @@ public class DoormanActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
     	setContentView(R.layout.main);
     	
+    	// Listen for connectivity changes on a dedicated Receiver
+    	registerReceiver(connectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    	
+    	// Start the worker thread to send and receive messages from the server
     	serverCaller.start();
+    	
+    	// Now that the worker thread has started, get a handler for it
     	serverHandler = serverCaller.getHandler();
+    	
+    	/*
+    	 * If there is a List Name available,
+    	 * attempt to download the list
+    	 * 
+    	 * If the download attempt is unsuccessful
+    	 * or if the List Name was null, attempt
+    	 * to download the list of lists
+    	 * 
+    	 * If the download attempt is unsuccessful
+    	 * or if the Encryption Key is null, begin a new
+    	 * LoginFragment with the stored UserName and Password
+    	 */
     	
     	if(savedInstanceState==null)
     	{
-    		if(transaction==null)
-    		{
-    			transaction = getSupportFragmentManager().beginTransaction();
-    		}
-    		transaction.replace(R.id.main_view, new LoginFragment());
-    		transaction.commit();
-    		transaction = null;
+    		// Restore content and then destroy the local save cache
+        	final JSONObject patronListInfo = restorePatronListInfo();
+        	final JSONObject selectListInfo = restoreListSelectInfo();
+        	deleteSaveCache();
+        	
+        	if(patronListInfo!=null)
+        	{
+        		// Build Guest List Fragment
+        	}
+        	else if(selectListInfo!=null)
+        	{
+        		// Recreate ListListFragment from memory
+        		final SelectListFragment lazarusList = SelectListFragment.recreate(selectListInfo);
+        		
+	    		if(transaction==null)
+	    		{
+	    			transaction = getSupportFragmentManager().beginTransaction();
+	    		}
+	    		transaction.replace(R.id.main_view, lazarusList);
+	    		transaction.commit();
+	    		transaction = null;
+        	}
+        	else
+        	{
+        		// Fuck it, we'll just make him log in
+	    		if(transaction==null)
+	    		{
+	    			transaction = getSupportFragmentManager().beginTransaction();
+	    		}
+	    		transaction.replace(R.id.main_view, new LoginFragment());
+	    		transaction.commit();
+	    		transaction = null;
+        	}
     	}
-    	
-    	/*
-    	 * Try to restore the file SAVELISTFILE. If restore is
-    	 * unsuccessful, this will return false and the if statement
-    	 * will evaluate to true. Therefore the if statement
-    	 * will NOT execute unless savedInstanceState IS null
-    	 * AND there is no saved file to restore
-    	 */
-    	/*
-    	if(savedInstanceState==null&!this.restoreFile(LIST_SAVE_FILE))
-    	{
-	        final LoginFragment userLogin = new LoginFragment();
-	        final FragmentTransaction transaction = this.getSupportFragmentManager().beginTransaction();
-	        transaction.replace(R.id.main_view, userLogin);
-	        transaction.commit();
-    	}
-    	*/
     }
-	
-	@Override
-	protected void onStart()
-	{
-		Log.v("Activity.onStart", "Called");
-		super.onStart();
-	}
-	
-	@Override
-	protected void onRestart()
-	{
-		Log.v("Activity.onRestart", "Called");
-		
-		/*
-		 * When the activity restarts itself, the serverCaller should resume its operations
-		 */
-		/*
-		synchronized(serverCaller)
-		{
-			serverCaller.notify();
-		}*/
-		super.onRestart();
-	}
-	
-	@Override
-	protected void onResume()
-	{
-		Log.v("Activity.onResume", "Called");
-		super.onResume();
-	}
-	
-	@Override
-	protected void onPause()
-	{
-		Log.v("Activity.onPause", "Called");
-		super.onPause();
-	}
-	
-	@Override
-	protected void onStop()
-	{
-		Log.v("Activity.onStop", "Called");
-		
-		/*
-		 * When the activity is stopped, we need to save
-		 * all of the current data, including pending
-		 * commands to the server. 
-		 */
-		
-		try
-		{
-			final GuestListFragment list = (GuestListFragment) getSupportFragmentManager().findFragmentByTag(GUESTLIST_FRAGMENT);
-			/*
-			 * If findFragmentByTag evaluated to NULL
-			 * be sure we don't throw a nullPointerException
-			 * by trying to save a fragment that doesn't exist
-			 */
-			
-			if(list!=null)
-			{
-				final FileOutputStream fos = openFileOutput(LIST_SAVE_FILE, Context.MODE_PRIVATE);
-				final String writable = list.toJsonObject().toString();
-				
-				Log.v("DoormanActivity.onDestroy()", "Writing to file: " + writable);
-				
-				try
-				{
-					fos.write(writable.getBytes());
-					fos.close();
-				} 
-				catch (IOException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		}
-		catch (FileNotFoundException e)
-		{
-			/*
-			 * This statement should NEVER be executed
-			 */
-			Log.e("DoormanActivity.onDestroy()", "File not found");
-			e.printStackTrace();
-		}
-		super.onStop();
-	}
 	
 	@Override
 	protected void onDestroy()
 	{
+		// Clear all pending commands
 		serverHandler.removeCallbacksAndMessages(null);
+		
+		// Get rid of our HandlerThread
 		serverCaller.quit();
+		
+		// Unregister our connectivity broadcast receiver
+		unregisterReceiver(connectivityReceiver);
+		
 		Log.v("Activity.onDestroy", "Called");
 		super.onDestroy();
 		
 	}
 	
-	@Override
-	protected void onSaveInstanceState(Bundle outState)
-	{
-		Log.v("DoormanActivity.onSaveInstanceState()", "Called");
-		super.onSaveInstanceState(outState);
-	}
-	
-	@Override
-	protected void onRestoreInstanceState(Bundle savedInstanceState)
-	{
-		Log.v("DoormanActivity.onResumeInstanceState", "Called");
-		super.onRestoreInstanceState(savedInstanceState);
-	}
-	
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu)
-	{
-		Log.v("DoormanActivity.onCreateOptionsMenu", "Called");
-		return true;
-	}
-	
-	@Override
-	public void onBackPressed()
-	{
-		Log.v("DoormanActivity.onBackPressed()", "Called");
-		super.onBackPressed();
-	}
-	
-	
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent keyEvent)
+    public boolean onKeyDown(final int keyCode, final KeyEvent keyEvent)
     {
     	Log.v("DoormanActivity.onKeyDown()", "Called");
     	/*
@@ -212,7 +130,7 @@ public class DoormanActivity extends FragmentActivity
         {
         case KeyEvent.KEYCODE_SEARCH:
         	Log.v("DoormanActivity.onKeyDown()", "KEYCODE_SEARCH");
-        	final GuestListFragment list = (GuestListFragment) getSupportFragmentManager().findFragmentByTag(GUESTLIST_FRAGMENT);
+        	final PatronListFragment list = (PatronListFragment) getSupportFragmentManager().findFragmentByTag(PATRON_LIST_FRAGMENT);
         	/*
         	 * We only care about the search button if there
         	 * is a GuestListFragment and it is currently visible
@@ -226,9 +144,8 @@ public class DoormanActivity extends FragmentActivity
         return super.onKeyDown(keyCode, keyEvent);
     }
     
-    private boolean restoreFile(String filename)
+    private String restoreFileContent(final String filename)
     {
-    	Log.v("DoormanActivity.restoreFile()", "Called");
     	String content = "";
     	try
     	{
@@ -238,192 +155,17 @@ public class DoormanActivity extends FragmentActivity
     		{
     			content += new String(input);
     		}
-    		Log.v("DoormanActivity.restoreFile()", "Content Restored is: " + content);
-    		/*
-    		 * Once our list is loaded from memory, we can delete the file (hopefully)
-    		 * This may be a source of unforeseen errors in the future
-    		 */
-    		
-    		deleteFile(filename);
-    		/*
-    		 * This will return true if the Guest List instantiated correctly
-    		 */
-    		return this.instantiateGuestList(content);
     	}
     	catch(FileNotFoundException e)
     	{
-    		Log.v("DoormanActivity.restoreFile()", "File does not exist, will return false");
-    		/*
-    		 * This exception will be thrown every time the app is started from
-    		 * a logged out state. Ideally there would be a more robust handler
-    		 * for when the file does not exist, but for now this works and
-    		 * returns FALSE when there is no file to read from 
-    		 */
     		e.printStackTrace();
     	}
     	catch (IOException e)
     	{
 			e.printStackTrace();
 		}
-    	return false;
-    }
-    
-    private boolean instantiateGuestList(String content)
-    {
-		try
-		{
-			final JSONObject savedObject = (JSONObject) new JSONTokener(content).nextValue();
-			
-			final JSONArray promotersArray = (JSONArray) savedObject.get("promoters");
-			final JSONArray guestsArray = (JSONArray) savedObject.get("data");
-			final String name = (String) savedObject.getString("name");
-			
-			ArrayList<List<NameValuePair>> pendingCommands = null;
-			
-			/*
-			 * It's possible we had no pending commands, in which case
-			 * we will want to skip this piece of code entirely
-			 */
-			if(savedObject.has("pending"))
-			{
-				final JSONArray pendingCommandsArray = (JSONArray) savedObject.get("pending");
-				
-				Log.v("Making", "Pending Commands");
-				
-				pendingCommands = JSONTOPENDINGCOMMANDS(pendingCommandsArray);
-			}
-			
-			Log.v("Making", "Promoters Array");
-			
-			final ArrayList<Promoter> promoterList = JSONTOPROMOTERLIST(promotersArray);
-			
-			Log.v("Making", "Guests Array");
-			
-			final ArrayList<Guest> guestList = JSONTOGUESTLIST(guestsArray, promoterList);
-			
-			final GuestListFragment list = new GuestListFragment(name, guestList, promoterList);
-			/*
-			 * If pendingCommands is null here, the constructor
-			 * of ServerPoller will ignore it, no worries
-			 */
-			list.setServerPoller(pendingCommands);
-			final FragmentTransaction transaction = this.getSupportFragmentManager().beginTransaction();
-		    transaction.replace(R.id.main_view, list, GUESTLIST_FRAGMENT);
-		    transaction.commit();
-			return true;
-		}
-		catch (JSONException e)
-		{
-			Log.v("DoormanActivity.instantiateGuestList()", "There was an error parsing the JSON, returning FALSE");
-			e.printStackTrace();
-			return false;
-		}
-    }
-    
-    /*
-     * The following static methods are used to parse JSON
-     * anywhere it is needed in the application. It should have
-     * robust error and exception handling to deal with JSON
-     * errors
-     */
-    protected static ArrayList<Promoter> JSONTOPROMOTERLIST(final JSONArray data)
-    {
-    	Log.v("DoormanActivity.JSONTOPROMOTERLIST()", "Called");
-    	final ArrayList<Promoter> promoterList = new ArrayList<Promoter>();
-    	try
-    	{
-			for(int j = 0; j < data.length(); j++)
-			{
-				Log.v("DoormanActivity.JSONTOPROMOTERLIST()", "Instantiating promoter number " + j);
-				final JSONObject promoter = data.getJSONObject(j);
-				promoterList.add(new Promoter(promoter.getString("p_display"),
-						promoter.getString("p_code"),
-						promoter.getInt("p_id")));
-			}
-    	}
-    	catch(JSONException e)
-    	{
-    		e.printStackTrace();
-    	}
-    	return promoterList;
-    }
-    
-    protected static ArrayList<Guest> JSONTOGUESTLIST(final JSONArray data, final ArrayList<Promoter> promoterList)
-    {
-    	Log.v("DoormanActivity.JSONTOGUESTLIST()", "Called");
-		final ArrayList<Guest> guestList = new ArrayList<Guest>();
-		try
-		{
-			for(int i = 0; i < data.length(); i++)
-			{
-				Log.v("DoormanActivity.JSONTOGUESTLIST()", "On guest number " + i);
-				final JSONObject guest = data.getJSONObject(i);
-				final String promoterId = guest.getString("p_code");
-				/*
-				 * We need to assign a promoter to each Guest.
-				 * If the guest doesn't have a promoter, we'll create
-				 * a default promoter with no name, no tag, and an identifier
-				 * equal to -1 (should be unused)
-				 */
-				Promoter promoter = null;
-				for(Promoter p : promoterList)
-				{
-					if(p.getTag().contentEquals(promoterId))
-					{
-						promoter = p;
-						break;
-					}
-				}
-				if(promoter==null)
-				{
-					/*
-					 * There may be a better way of doing this
-					 * instead of creating a bunch of unused
-					 * Promoter objects
-					 */
-					promoter = new Promoter("", "", -1);
-				}
-				
-				guestList.add(new Guest(guest.getString("v_first"),
-						guest.getString("v_last"),
-						guest.getInt("v_nguests"),
-						guest.getInt("v_id"),
-						((guest.get("v_checked") instanceof Boolean) ? guest.getBoolean("v_checked") : (guest.getInt("v_checked")!=0)),
-						promoter));
-			}
-		}
-		catch(JSONException e)
-		{
-			e.printStackTrace();
-		}
-    	return guestList;
-    }
-    
-    protected static ArrayList<List<NameValuePair>> JSONTOPENDINGCOMMANDS(JSONArray data)
-    {
-    	Log.v("DoormanActivity.JSONTOPENDINGCOMMANDS()", "Called");
-    	final ArrayList<List<NameValuePair>> pendingCommands = new ArrayList<List<NameValuePair>>();
-    	try
-    	{
-    		for(int i = 0; i < data.length(); i++)
-    		{
-    			final ArrayList<NameValuePair> command = new ArrayList<NameValuePair>();
-    			command.add(new BasicNameValuePair("op", data.getJSONObject(i).getString("op")));
-    			command.add(new BasicNameValuePair("v_id", data.getJSONObject(i).getString("v_id")));
-    			command.add(new BasicNameValuePair("v_checked", data.getJSONObject(i).getString("v_checked")));
-    			pendingCommands.add(command);
-    		}
-    	}
-    	catch (JSONException e)
-    	{
-			e.printStackTrace();
-		}
-    	return pendingCommands;
-    }
-    
-    protected static void showLoadingDialog()
-    {
-    	// Code here
+    	
+    	return content;
     }
     
     protected void sendCommand(final Command command)
@@ -440,17 +182,78 @@ public class DoormanActivity extends FragmentActivity
     	serverHandler.sendMessageAtTime(message, uptimeMillis);
     }
     
-    protected void setEncryptionKey(final String key)
+    protected JSONObject restorePatronListInfo()
     {
-		final SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
-		final SharedPreferences.Editor editor = settings.edit();
-		editor.putString("key", key);
-		editor.commit();
-		Log.v("DoormanActivity", "Encryption Key added to Shared Preferences: " + key);
+    	final JSONObject patronListInfo = null;
+    	return patronListInfo;
     }
     
-    protected String getEncryptionKey()
+    protected JSONObject restoreListSelectInfo()
     {
-    	return getPreferences(Context.MODE_PRIVATE).getString("key", null);
+    	JSONObject listInfo = null;
+    	
+    	if(hasFileInfo(SELECT_LIST_INFO))
+    	{
+    		final String savedData = restoreFileContent(SELECT_LIST_INFO);
+    		try
+    		{
+				listInfo = (JSONObject) new JSONTokener(savedData).nextValue();
+    		}
+    		catch (JSONException e)
+    		{
+				e.printStackTrace();
+			}
+    	}
+    	return listInfo;
+    }
+    
+    private boolean hasFileInfo(final String fileName)
+    {
+    	final String[] files = fileList();
+    	for(final String f : files)
+    	{
+    		if(f.contentEquals(fileName))
+    		{
+    			return true;
+    		}
+    	}
+    	return false;
+    }
+    
+    /**
+     * Cleanup method to ensure all locally saved content is deleted
+     */
+    protected void deleteSaveCache()
+    {
+		// this.deleteFile(DoormanActivity.LOGIN_INFO);
+		this.deleteFile(DoormanActivity.SELECT_LIST_INFO);
+		this.deleteFile(DoormanActivity.PATRON_LIST_INFO);
+    }
+    
+    private class ConnectionChangeReceiver extends BroadcastReceiver
+    {
+    	@Override
+    	public void onReceive(final Context context, final Intent intent)
+    	{
+    		Log.v("ConnectionChangeReceiver", "Connectivity Changed");
+    		
+    		final ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+    		final NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
+    		
+    		if(activeNetInfo!=null && activeNetInfo.isConnected())
+    		{
+				if(serverCaller.isPaused())
+				{
+					synchronized(serverCaller)
+					{
+						serverCaller.unPause();
+					}
+				}
+    		}
+    		else
+    		{
+    			serverCaller.pause();
+    		}
+    	}
     }
 }

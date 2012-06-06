@@ -21,6 +21,8 @@
 	                android:title="Checked" />
 	            <item android:id="@+id/checked_in_unchecked"
 	                android:title="Unchecked" />
+	            <item android:id="@+id/checked_in_banned"
+	                android:title="Banned" />
 	        </group>
         </menu>
     </item>
